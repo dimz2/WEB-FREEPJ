@@ -31,6 +31,20 @@
   .topbar .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);flex-shrink:0;}
   .topbar h1{font-size:16px;font-weight:600;letter-spacing:.3px;}
   .topbar .sub{color:var(--text-dim);font-size:12px;margin-left:auto;}
+  .icon-btn{
+    width:34px;height:34px;border-radius:9px;
+    background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .admin-bar{
+    display:flex;gap:8px;padding:10px 16px;
+    background:#1c1608;border-bottom:1px solid var(--gold-dim);
+    position:sticky;top:57px;z-index:19;
+    overflow-x:auto;
+  }
+  .admin-bar .btn{padding:9px 14px;font-size:12px;white-space:nowrap;flex:none;}
 
   /* ---------- GRID VIEW ---------- */
   .category-label{
@@ -83,6 +97,15 @@
     font-size:13px;
     backdrop-filter:blur(2px);
   }
+  .admin-actions{
+    position:absolute;top:8px;left:8px;z-index:5;
+    display:flex;gap:6px;
+  }
+  .admin-actions button{
+    width:26px;height:26px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.65);color:#fff;font-size:12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
 
   /* ---------- DETAIL VIEW ---------- */
   .detail{
@@ -120,7 +143,7 @@
   .variant-name{font-size:22px;font-weight:700;margin-bottom:6px;}
   .variant-meta{color:var(--text-dim);font-size:13px;margin-bottom:16px;}
 
-  .action-row{display:flex;gap:10px;margin-bottom:22px;}
+  .action-row{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;}
   .btn{
     border:none;border-radius:10px;
     padding:13px 18px;
@@ -159,7 +182,7 @@
   }
   .chip.active{background:var(--gold);color:#1a1300;border-color:var(--gold);font-weight:700;}
 
-  /* files modal */
+  /* files / gate / form modal */
   .overlay{
     display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
     z-index:50;align-items:flex-end;justify-content:center;
@@ -187,6 +210,23 @@
   .file-item:last-child{border-bottom:none;}
   .file-item .fname{color:var(--text);}
   .file-item .fsize{color:var(--text-dim);}
+
+  /* form fields (admin panel) */
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+  .field input, .field select{
+    width:100%;padding:11px 12px;border-radius:10px;
+    background:var(--bg);border:1px solid var(--border);
+    color:var(--text);font-size:14px;font-family:inherit;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--gold);}
+  .field input[type="color"]{padding:4px;height:44px;cursor:pointer;}
+  .variant-block{
+    background:var(--panel2);border:1px solid var(--border);border-radius:12px;
+    padding:12px;margin-bottom:12px;
+  }
+  .file-row{margin-bottom:8px;}
+  #gateError{color:#ff6b6b;font-size:12px;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -195,6 +235,13 @@
     <div class="dot"></div>
     <h1>Variant Gallery</h1>
     <div class="sub" id="countLabel"></div>
+    <button class="icon-btn" id="gearBtn" onclick="openAdminGate()" title="Admin">⚙</button>
+  </div>
+
+  <div class="admin-bar" id="adminBar" style="display:none;">
+    <button class="btn btn-primary" onclick="openCharacterForm()">+ Tambah Character</button>
+    <button class="btn btn-secondary" onclick="exportDataJs()">⬇ Export data.js</button>
+    <button class="btn btn-secondary" onclick="lockAdmin()">🔒 Keluar</button>
   </div>
 
   <!-- GRID VIEW -->
@@ -218,6 +265,8 @@
     <div class="action-row">
       <button class="btn btn-primary" id="downloadBtn">⬇ Download</button>
       <button class="btn btn-secondary" onclick="openFiles()">▤ Files</button>
+      <button class="btn btn-secondary" id="editBtn" style="display:none;">✎ Edit</button>
+      <button class="btn btn-secondary" id="deleteBtn" style="display:none;">🗑 Hapus</button>
     </div>
 
     <div class="preview">
@@ -237,50 +286,83 @@
     </div>
   </div>
 
-<script>
-/* ---- Sample data — swap emoji/colors for real thumbnails & edit names/files freely ---- */
-/* ============================================
-   ISI LINK DI SINI. Ganti teks yang ada di dalam
-   tanda kutip " " punya tiap baris thumb: dan drive:
-   ============================================ */
-const DATA = [
-  { id:1, name:"AMV TYPOGRAPHY", eyebrow:"FREE", rarity:"rare",
-    thumb:"https://i.pinimg.com/736x/0d/0d/3c/0d0d3cde5fd01b5de4c902ab5aca8940.jpg", color:"#3a4a6b",
-    variants:[
-      {name:"𝖠𝗍𝗁𝖺𝗇𝖺𝗌𝗂𝖺 𝖽𝖾 𝖠𝗅𝗀𝖾𝗋 𝖮𝖻𝖾𝗅𝗂𝖺", total:2, selected:1,
-        thumb:"https://i.pinimg.com/736x/0d/0d/3c/0d0d3cde5fd01b5de4c902ab5aca8940.jpg",
-        drive:"https://drive.google.com/drive/folders/1vK2wBa858EUvVSYg9yU-NK9K3jM-llBF?usp=sharing",
-        files:[{n:"part 1.aep",s:"84 MB"},{n:"preview.png",s:"3.1 MB"}]}
-    ]},
-  { id:2, name:"ytta", eyebrow:"CHARACTER", rarity:"epic",
-    thumb:"PASTE_LINK_THUMBNAIL_PRUNE", color:"#4a2f6b",
-    variants:[
-      {name:"Mid", total:3, selected:1,
-        thumb:"PASTE_LINK_PREVIEW_PRUNE_REQUIEM",
-        drive:"PASTE_LINK_DRIVE_PRUNE_REQUIEM",
-        files:[{n:"b",s:"91 MB"},{n:"h",s:"22 MB"}]}
-    ]},
-  { id:3, name:"s", eyebrow:"CHARACTER", rarity:"rare",
-    thumb:"PASTE_LINK_THUMBNAIL_NICOLE", color:"#6b3a2f",
-    variants:[
-      {name:"Golr", total:2, selected:2,
-        thumb:"PASTE_LINK_PREVIEW_NICOLE_GOLDENHOUR",
-        drive:"PASTE_LINK_DRIVE_NICOLE_GOLDENHOUR",
-        files:[{n:"b",s:"79 MB"},{n:"f",s:"14 MB"}]}
-    ]},
-  { id:4, name:"u", eyebrow:"CHARACTER", rarity:"rare",
-    thumb:"PASTE_LINK_THUMBNAIL_LINNEA", color:"#2f6b52",
-    variants:[
-      {name:"jj", total:1, selected:1,
-        thumb:"PASTE_LINK_PREVIEW_LINNEA_SPRINGWING",
-        drive:"PASTE_LINK_DRIVE_LINNEA_SPRINGWING",
-        files:[{n:"j.psd",s:"68 MB"}]}
-    ]}
-];
+  <!-- ADMIN PASSWORD GATE -->
+  <div class="overlay" id="gateOverlay" onclick="if(event.target===this)closeGate()">
+    <div class="sheet">
+      <h3>Masuk Admin</h3>
+      <div class="field">
+        <label>Password</label>
+        <input id="gatePassInput" type="password" autocomplete="off" onkeydown="if(event.key==='Enter')submitAdminPassword()">
+      </div>
+      <div id="gateError" style="display:none;">Password salah.</div>
+      <div class="action-row" style="margin-top:16px;margin-bottom:0;">
+        <button class="btn btn-primary" onclick="submitAdminPassword()">Masuk</button>
+        <button class="btn btn-secondary" onclick="closeGate()">Batal</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- CREATE / EDIT CHARACTER FORM -->
+  <div class="overlay" id="charFormOverlay" onclick="if(event.target===this)closeCharForm()">
+    <div class="sheet" style="max-height:88vh;overflow-y:auto;">
+      <h3 id="formTitle">Tambah Character</h3>
+      <div class="field"><label>Nama</label><input id="f_name"></div>
+      <div class="field"><label>Eyebrow / Kategori</label><input id="f_eyebrow" value="CHARACTER"></div>
+      <div style="display:flex;gap:8px;">
+        <div class="field" style="flex:1;"><label>Rarity</label>
+          <select id="f_rarity">
+            <option value="common">common</option>
+            <option value="rare">rare</option>
+            <option value="epic">epic</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;"><label>Warna gradient</label><input id="f_color" type="color" value="#3a4a6b"></div>
+      </div>
+      <div class="field"><label>Thumbnail URL (grid)</label><input id="f_thumb" placeholder="https://..."></div>
+
+      <div class="hr"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;">Variants</h3>
+        <button type="button" class="chip" onclick="addVariantRow()">+ Variant</button>
+      </div>
+      <div id="variantRows"></div>
+
+      <div class="action-row" style="margin-top:18px;margin-bottom:0;">
+        <button class="btn btn-primary" onclick="saveCharacterForm()">💾 Simpan</button>
+        <button class="btn btn-secondary" onclick="closeCharForm()">Batal</button>
+      </div>
+    </div>
+  </div>
+
+<script src="data.js"></script>
+<script src="auth.js"></script>
+<script>
+/* ============================================
+   State
+   ============================================ */
 let current = null;
 let currentVariantIdx = 0;
+let adminUnlocked = false;
+let editingId = null;
+let variantCounter = 0;
 
+/* ============================================
+   Overlay helpers (reused by gate + files + form)
+   ============================================ */
+function showOverlay(id){
+  const ov = document.getElementById(id);
+  ov.classList.add('active'); ov.classList.remove('show');
+  requestAnimationFrame(()=> requestAnimationFrame(()=> ov.classList.add('show')));
+}
+function hideOverlay(id){
+  const ov = document.getElementById(id);
+  ov.classList.remove('show');
+  setTimeout(()=> ov.classList.remove('active'), 220);
+}
+
+/* ============================================
+   Grid view
+   ============================================ */
 function renderGrid(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
@@ -288,16 +370,23 @@ function renderGrid(){
     const card = document.createElement('div');
     card.className = 'card ' + ch.rarity;
     card.style.background = `linear-gradient(160deg, ${ch.color}, #14161d)`;
-    card.onclick = ()=>openDetail(ch.id);
+    card.onclick = (e)=>{ if(e.target.closest('.admin-actions')) return; openDetail(ch.id); };
     card.innerHTML = `
       <div class="card-art"><img src="${ch.thumb}" alt="${ch.name}" loading="lazy"></div>
       <div class="card-name">${ch.name}</div>
+      ${adminUnlocked ? `<div class="admin-actions">
+        <button onclick="event.stopPropagation();openCharacterForm(${ch.id})" title="Edit">✎</button>
+        <button onclick="event.stopPropagation();deleteCharacter(${ch.id})" title="Hapus">🗑</button>
+      </div>` : ''}
     `;
     grid.appendChild(card);
   });
   document.getElementById('countLabel').textContent = DATA.length + ' items';
 }
 
+/* ============================================
+   Detail view
+   ============================================ */
 function openDetail(id){
   current = DATA.find(c=>c.id===id);
   currentVariantIdx = 0;
@@ -341,6 +430,16 @@ function renderDetail(){
   }
 
   document.getElementById('downloadBtn').onclick = ()=>downloadVariant(ch, v);
+
+  const editBtn = document.getElementById('editBtn');
+  const delBtn = document.getElementById('deleteBtn');
+  if(adminUnlocked){
+    editBtn.style.display='flex'; delBtn.style.display='flex';
+    editBtn.onclick = ()=>openCharacterForm(ch.id);
+    delBtn.onclick = ()=>deleteCharacter(ch.id);
+  } else {
+    editBtn.style.display='none'; delBtn.style.display='none';
+  }
 }
 
 function downloadVariant(ch, v){
@@ -357,15 +456,202 @@ function openFiles(){
       <span class="fsize">${f.s}</span>
     </div>
   `).join('');
-  const ov = document.getElementById('filesOverlay');
-  ov.classList.add('active');
-  ov.classList.remove('show');
-  requestAnimationFrame(()=> requestAnimationFrame(()=> ov.classList.add('show')));
+  showOverlay('filesOverlay');
 }
-function closeFiles(){
-  const ov = document.getElementById('filesOverlay');
-  ov.classList.remove('show');
-  setTimeout(()=> ov.classList.remove('active'), 220);
+function closeFiles(){ hideOverlay('filesOverlay'); }
+
+/* ============================================
+   Admin gate (password check via SHA-256, hash lives in auth.js)
+   ============================================ */
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function openAdminGate(){
+  if(adminUnlocked){ lockAdmin(); return; }
+  if(typeof ADMIN_PASSWORD_HASH === 'undefined'){
+    alert('auth.js belum ke-load. Pastikan file auth.js ada satu folder sama index.html.');
+    return;
+  }
+  document.getElementById('gatePassInput').value = '';
+  document.getElementById('gateError').style.display = 'none';
+  showOverlay('gateOverlay');
+  setTimeout(()=> document.getElementById('gatePassInput').focus(), 250);
+}
+function closeGate(){ hideOverlay('gateOverlay'); }
+
+async function submitAdminPassword(){
+  const pass = document.getElementById('gatePassInput').value;
+  const hash = await sha256(pass);
+  if(hash === ADMIN_PASSWORD_HASH){
+    adminUnlocked = true;
+    closeGate();
+    document.getElementById('adminBar').style.display = 'flex';
+    document.getElementById('gearBtn').textContent = '🔓';
+    renderGrid();
+    if(current) renderDetail();
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+  }
+}
+function lockAdmin(){
+  adminUnlocked = false;
+  document.getElementById('adminBar').style.display = 'none';
+  document.getElementById('gearBtn').textContent = '⚙';
+  renderGrid();
+  if(current) renderDetail();
+}
+
+/* ============================================
+   Create / edit character form
+   ============================================ */
+function esc(v){ return (v===undefined || v===null) ? '' : String(v).replace(/"/g,'&quot;'); }
+
+function openCharacterForm(id){
+  editingId = id || null;
+  const ch = id ? DATA.find(c=>c.id===id) : null;
+  document.getElementById('formTitle').textContent = ch ? 'Edit Character' : 'Tambah Character';
+  document.getElementById('f_name').value = ch?.name || '';
+  document.getElementById('f_eyebrow').value = ch?.eyebrow || 'CHARACTER';
+  document.getElementById('f_rarity').value = ch?.rarity || 'common';
+  document.getElementById('f_color').value = ch?.color || '#3a4a6b';
+  document.getElementById('f_thumb').value = ch?.thumb || '';
+  document.getElementById('variantRows').innerHTML = '';
+  if(ch && ch.variants.length){
+    ch.variants.forEach(v=>addVariantRow(v));
+  } else {
+    addVariantRow();
+  }
+  showOverlay('charFormOverlay');
+}
+function closeCharForm(){ hideOverlay('charFormOverlay'); }
+
+function addVariantRow(prefill){
+  variantCounter++;
+  const wrap = document.createElement('div');
+  wrap.className = 'variant-block';
+  wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <strong style="font-size:13px;">Variant</strong>
+      <button type="button" class="chip" onclick="this.closest('.variant-block').remove()">✕ Hapus variant</button>
+    </div>
+    <div class="field"><label>Nama variant</label><input class="v-name" value="${esc(prefill?.name)}"></div>
+    <div style="display:flex;gap:8px;">
+      <div class="field" style="flex:1;"><label>Total</label><input class="v-total" type="number" min="1" value="${prefill?.total ?? 1}"></div>
+      <div class="field" style="flex:1;"><label>Selected</label><input class="v-selected" type="number" min="1" value="${prefill?.selected ?? 1}"></div>
+    </div>
+    <div class="field"><label>Preview thumbnail URL</label><input class="v-thumb" value="${esc(prefill?.thumb)}"></div>
+    <div class="field"><label>Link Google Drive</label><input class="v-drive" value="${esc(prefill?.drive)}"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--text-dim);">Files</span>
+      <button type="button" class="chip" onclick="addFileRow(this)">+ File</button>
+    </div>
+    <div class="file-rows"></div>
+  `;
+  document.getElementById('variantRows').appendChild(wrap);
+  const fileRows = wrap.querySelector('.file-rows');
+  if(prefill?.files?.length){
+    prefill.files.forEach(f=> fileRows.appendChild(fileRowEl(f.n, f.s)));
+  }
+}
+
+function fileRowEl(n='', s=''){
+  const row = document.createElement('div');
+  row.className = 'file-row';
+  row.style.display = 'flex'; row.style.gap = '8px';
+  row.innerHTML = `
+    <input class="fr-name" placeholder="nama file" value="${esc(n)}" style="flex:2;padding:9px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;">
+    <input class="fr-size" placeholder="ukuran" value="${esc(s)}" style="flex:1;padding:9px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;">
+    <button type="button" class="chip" onclick="this.parentElement.remove()">✕</button>
+  `;
+  return row;
+}
+function addFileRow(btn){
+  const fileRows = btn.closest('.variant-block').querySelector('.file-rows');
+  fileRows.appendChild(fileRowEl());
+}
+
+function saveCharacterForm(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ alert('Nama character wajib diisi.'); return; }
+
+  const variants = [...document.querySelectorAll('#variantRows .variant-block')].map(block=>{
+    const files = [...block.querySelectorAll('.file-rows .file-row')].map(fr=>({
+      n: fr.querySelector('.fr-name').value.trim(),
+      s: fr.querySelector('.fr-size').value.trim()
+    })).filter(f=>f.n);
+    return {
+      name: block.querySelector('.v-name').value.trim() || 'Variant',
+      total: parseInt(block.querySelector('.v-total').value) || 1,
+      selected: parseInt(block.querySelector('.v-selected').value) || 1,
+      thumb: block.querySelector('.v-thumb').value.trim(),
+      drive: block.querySelector('.v-drive').value.trim(),
+      files
+    };
+  });
+
+  const charObj = {
+    id: editingId || (DATA.reduce((m,c)=>Math.max(m,c.id),0) + 1),
+    name,
+    eyebrow: document.getElementById('f_eyebrow').value.trim() || 'CHARACTER',
+    rarity: document.getElementById('f_rarity').value,
+    thumb: document.getElementById('f_thumb').value.trim(),
+    color: document.getElementById('f_color').value,
+    variants: variants.length ? variants : [{name:'Default', total:1, selected:1, thumb:'', drive:'', files:[]}]
+  };
+
+  if(editingId){
+    const i = DATA.findIndex(c=>c.id===editingId);
+    DATA[i] = charObj;
+  } else {
+    DATA.push(charObj);
+  }
+  editingId = null;
+  closeCharForm();
+  renderGrid();
+  showToast('Tersimpan di halaman ini. Klik "Export data.js" biar perubahan permanen di server.');
+}
+
+function deleteCharacter(id){
+  if(!confirm('Hapus character ini? Ini cuma keliatan permanen setelah lo export & upload ulang data.js.')) return;
+  const i = DATA.findIndex(c=>c.id===id);
+  if(i>-1) DATA.splice(i,1);
+  if(current && current.id===id){ closeDetail(); }
+  renderGrid();
+}
+
+/* ============================================
+   Export data.js (bikin file baru buat replace di server)
+   ============================================ */
+function exportDataJs(){
+  const src = '// data.js\nconst DATA = ' + JSON.stringify(DATA, null, 2) + ';\n';
+  const blob = new Blob([src], {type:'text/javascript'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'data.js';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('data.js ke-download. Upload buat replace file lama di hosting lo.');
+}
+
+/* ============================================
+   Toast
+   ============================================ */
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;max-width:520px;margin:0 auto;background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:12px 14px;border-radius:10px;font-size:13px;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.5);transition:opacity .3s ease;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.opacity = '0'; }, 3500);
 }
 
 renderGrid();
