@@ -19,4 +19,4 @@
 // 3. Copy hasil hash (string panjang) yang muncul di console
 // 4. Paste ganti nilai ADMIN_PASSWORD_HASH di bawah ini
 // ============================================
-const ADMIN_PASSWORD_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+const ADMIN_PASSWORD_HASH = "d29b6fb43eedd664d3e5c27f4deab72fc7351124f44b264d000c09282b35526e";
